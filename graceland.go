@@ -58,7 +58,7 @@ func (g *Group) Add(r Routine) {
 // This function also captures any SIGINT, SIGQUIT or SIGTERM signals received
 // from the host environment. After receiving any of these signals, all routines
 // in the group are shut down gracefully.
-func (g *Group) Start() error {
+func (g *Group) StartE() error {
 	wg := &sync.WaitGroup{}
 
 	g.mut.Lock()
@@ -97,6 +97,30 @@ func (g *Group) Start() error {
 	wg.Wait()
 
 	return g.shutdownErr()
+}
+
+func (g *Group) Start() {
+	g.mut.Lock()
+
+	// start each Routine in a separate goroutine
+	//
+	for i, r := range g.routines {
+		go func(i int, r Routine) {
+			err := r.Start()
+
+			// Start() is a blocking call, so Routine is considered
+			// done at this point
+			g.markDone(i, err)
+
+			// if the Routine stopped due to an error, stop all
+			// other Routines in the group
+			if err != nil {
+				g.Stop()
+			}
+		}(i, r)
+	}
+
+	g.mut.Unlock()
 }
 
 // Stop gracefully shuts down all routines in the group.

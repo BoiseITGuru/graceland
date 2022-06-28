@@ -99,7 +99,7 @@ func ExampleServerWorker() {
 	}()
 
 	// start group and block until shutdown
-	err := g.Start()
+	err := g.StartE()
 	if err != nil {
 		fmt.Printf("Shut down with error: %s\n", err.Error())
 		return
